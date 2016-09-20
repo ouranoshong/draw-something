@@ -1,0 +1,12 @@
+{
+    "name": "hong/workerman-demo",
+    "authors": [
+        {
+            "name": "hong",
+            "email": "hong@xiyanghui.com"
+        }
+    ],
+    "require": {
+        "workerman/workerman": "^3.3"
+    }
+}
