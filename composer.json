@@ -1,0 +1,19 @@
+{
+    "name": "hong/chat_demo",
+    "description": "a simple chat application",
+    "require": {
+        "cboden/ratchet": "^0.3.5"
+    },
+    "authors": [
+        {
+            "name": "hong",
+            "email": "hong@xiyanghui.com"
+        }
+    ],
+
+    "autoload": {
+        "psr-4": {
+            "Ace\\": "./src"
+        }
+    }
+}
