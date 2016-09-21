@@ -20,7 +20,7 @@ body {
     /* prevent selection highlight */
     -webkit-tap-highlight-color: rgba(0,0,0,0);
 }
-        
+
 .header, .footer{
     position: absolute;
     background-color: #222;
@@ -38,7 +38,7 @@ body {
     left: 0px;
     right: 0px;
     height: 42px;
-    padding:2px;    
+    padding:2px;
 }
 .title {
     width: auto;
@@ -61,13 +61,13 @@ body {
     border: solid 1px #111;
     border-radius: 4px;
     background-color: #404040;
-    box-shadow: 0 0 1px 1px #555,inset 0 1px 0 0 #666;     
+    box-shadow: 0 0 1px 1px #555,inset 0 1px 0 0 #666;
 }
 .navbtn-hover, .navbtn:active {
     color: #222;
     text-shadow: 0px 1px #aaa;
     background-color: #aaa;
-    box-shadow: 0 0 1px 1px #444,inset 0 1px 0 0 #ccc;   
+    box-shadow: 0 0 1px 1px #444,inset 0 1px 0 0 #ccc;
 }
 #content{
     position: absolute;
@@ -115,8 +115,10 @@ body {
     </style>
 	<script type="text/javascript">
 
-	var socketClient = new WebSocket("ws://192.168.30.158:2346");
+	var socketClient = new WebSocket("ws://0.0.0.0:2346");
 	var canvasActions = {};
+	var canvasWidth = getCanvasWidth();
+	var canvasHeight = getCanvasHeight();
 
 canvasActions.types = {};
 
@@ -129,8 +131,8 @@ canvasActions.types.TYPE_CLEAN = 'newCanvas';
 
 
 var canvasStore = {};
-	
-var ctx, color = "#000";	
+
+var ctx, color = "#000";
 document.addEventListener( "DOMContentLoaded", function(){
 	// setup a new canvas for drawing wait for device init
     setTimeout(function(){
@@ -138,6 +140,14 @@ document.addEventListener( "DOMContentLoaded", function(){
     }, 1000);
 }, false );
 
+
+function getCanvasWidth() {
+	return window.innerWidth;
+}
+
+function getCanvasHeight() {
+	return window.innerHeight-90;
+}
 
 function cleanCanvas() {
 	newCanvas();
@@ -147,21 +157,21 @@ function cleanCanvas() {
 // function to setup a new canvas for drawing
 function newCanvas(){
 	//define and resize canvas
-    document.getElementById("content").style.height = window.innerHeight-90;
-    var canvas = '<canvas id="canvas" width="'+window.innerWidth+'" height="'+(window.innerHeight-90)+'"></canvas>';
+    document.getElementById("content").style.height = canvasHeight;
+    var canvas = '<canvas id="canvas" width="'+canvasWidth+'" height="'+(canvasHeight)+'"></canvas>';
 	document.getElementById("content").innerHTML = canvas;
-    
+
     // setup canvas
 	ctx=document.getElementById("canvas").getContext("2d");
 	ctx.strokeStyle = color;
-	ctx.lineWidth = 5;	
-	
+	ctx.lineWidth = 5;
+
 	// setup to trigger drawing on mouse or touch
     drawTouch();
     drawPointer();
 	drawMouse();
 }
-        
+
 function selectColor(el){
     for(var i=0;i<document.getElementsByClassName("palette").length;i++){
         document.getElementsByClassName("palette")[i].style.borderColor = "#777";
@@ -191,10 +201,10 @@ canvasStore.listener = function(action) {
 			ctx.beginPath();
 			break;
 		case canvasActions.types.TYPE_MOVETO:
-			ctx.moveTo(action.data.x, action.data.y);
+			ctx.moveTo(action.data.xScale * canvasWidth, action.data.yScale * canvasHeight);
 			break;
 		case canvasActions.types.TYPE_LINETO:
-			ctx.lineTo(action.data.x, action.data.y);
+			ctx.lineTo(action.data.xScale * canvasWidth, action.data.yScale * canvasHeight);
 			break;
 		case canvasActions.types.TYPE_STROKE:
 			ctx.stroke();
@@ -214,15 +224,15 @@ canvasActions.beginPath = function() {
 	return {
 		type: canvasActions.types.TYPE_BEGINPATH
 	};
-	
+
 }
 
 canvasActions.moveTo = function(x, y) {
 	return {
 		type: canvasActions.types.TYPE_MOVETO,
 		data: {
-			x: x,
-			y: y
+			xScale: (x / canvasWidth),
+			yScale: (y / canvasHeight)
 		}
 	};
 
@@ -232,8 +242,8 @@ canvasActions.lineTo = function(x, y) {
 	return {
 		type: canvasActions.types.TYPE_LINETO,
 		data: {
-			x: x,
-			y: y
+			xScale: (x / canvasWidth),
+			yScale: (y / canvasHeight)
 		}
 	}
 
@@ -294,8 +304,8 @@ var drawTouch = function() {
 	};
     document.getElementById("canvas").addEventListener("touchstart", start, false);
 	document.getElementById("canvas").addEventListener("touchmove", move, false);
-}; 
-    
+};
+
 // prototype to	start drawing on pointer(microsoft ie) using canvas moveTo and lineTo
 var drawPointer = function() {
 	var start = function(e) {
@@ -321,7 +331,7 @@ var drawPointer = function() {
     };
     document.getElementById("canvas").addEventListener("MSPointerDown", start, false);
 	document.getElementById("canvas").addEventListener("MSPointerMove", move, false);
-};        
+};
 // prototype to	start drawing on mouse using canvas moveTo and lineTo
 var drawMouse = function() {
 	var clicked = 0;
@@ -370,7 +380,7 @@ var drawMouse = function() {
 		<div class="palette-case">
 			<div class="palette-box">
 				<div class="palette white" onclick="selectColor(this)"></div>
-			</div>	
+			</div>
 			<div class="palette-box">
 				<div class="palette red" onclick="selectColor(this)"></div>
 			</div>
@@ -382,10 +392,10 @@ var drawMouse = function() {
 			</div>
 			<div class="palette-box">
 				<div class="palette black" onclick="selectColor(this)"></div>
-			</div>		
+			</div>
 			<div style="clear:both"></div>
 		</div>
     </div>
-</div> 
+</div>
 </body>
 </html>
