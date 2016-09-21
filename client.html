@@ -115,16 +115,20 @@ body {
     </style>
 	<script type="text/javascript">
 
-	// var socketClient = new WebSocket("ws://0.0.0.0:2346");
+	var socketClient = new WebSocket("ws://192.168.30.158:2346");
+	var canvasActions = {};
+
+canvasActions.types = {};
+
+canvasActions.types.TYPE_BEGINPATH = 'beginPath';
+canvasActions.types.TYPE_MOVETO = 'moveTo';
+canvasActions.types.TYPE_LINETO = 'lineTo';
+canvasActions.types.TYPE_STROKE = 'stroke';
+canvasActions.types.TYPE_SELECTCOLOR = 'selectColor';
+canvasActions.types.TYPE_CLEAN = 'newCanvas';
 
 
-	// socketClient.onopen = function (event) {
-	// 	socketClient.send("Here's some text that the server is urgently awaiting!"); 
-	// };
-
-	// socketClient.onmessage = function (event) {
-	// 	console.log(event.data);
-	// };
+var canvasStore = {};
 	
 var ctx, color = "#000";	
 document.addEventListener( "DOMContentLoaded", function(){
@@ -133,6 +137,13 @@ document.addEventListener( "DOMContentLoaded", function(){
 	   newCanvas();
     }, 1000);
 }, false );
+
+
+function cleanCanvas() {
+	newCanvas();
+	canvasStore.dispatch(canvasActions.clearCanvas());
+}
+
 // function to setup a new canvas for drawing
 function newCanvas(){
 	//define and resize canvas
@@ -159,40 +170,104 @@ function selectColor(el){
     el.style.borderColor = "#fff";
     el.style.borderStyle = "dashed";
     color = window.getComputedStyle(el).backgroundColor;
+
     ctx.beginPath();
     ctx.strokeStyle = color;
+
+    canvasStore.dispatch(canvasActions.beginPath());
+    canvasStore.dispatch(canvasActions.selectColor(color));
 }
 
-var penMoveTo = function(x, y) {
-	var  moveToAction = {
-		type: 'moveTo',
+
+
+
+canvasStore.dispatch = function(action) {
+	socketClient.send(JSON.stringify(action));
+}
+
+canvasStore.listener = function(action) {
+	switch(action.type) {
+		case canvasActions.types.TYPE_BEGINPATH:
+			ctx.beginPath();
+			break;
+		case canvasActions.types.TYPE_MOVETO:
+			ctx.moveTo(action.data.x, action.data.y);
+			break;
+		case canvasActions.types.TYPE_LINETO:
+			ctx.lineTo(action.data.x, action.data.y);
+			break;
+		case canvasActions.types.TYPE_STROKE:
+			ctx.stroke();
+			break;
+		case canvasActions.types.TYPE_SELECTCOLOR:
+			ctx.strokeStyle = action.data.color;
+			break;
+
+		case canvasActions.types.TYPE_CLEAN:
+			newCanvas();
+			break;
+	}
+}
+
+canvasActions.beginPath = function() {
+
+	return {
+		type: canvasActions.types.TYPE_BEGINPATH
+	};
+	
+}
+
+canvasActions.moveTo = function(x, y) {
+	return {
+		type: canvasActions.types.TYPE_MOVETO,
 		data: {
 			x: x,
 			y: y
 		}
 	};
 
-	console.log(moveToAction);
 };
 
-var penLineTo = function(x, y) {
-	var lineToAction = {
-		type: 'lineTo',
+canvasActions.lineTo = function(x, y) {
+	return {
+		type: canvasActions.types.TYPE_LINETO,
 		data: {
 			x: x,
 			y: y
 		}
 	}
 
-	console.log(lineToAction);
 };
 
-var penStroke = function() {
-	var strokeAction = {
-		type: 'stroke'
+canvasActions.stroke = function() {
+	return {
+		type: canvasActions.types.TYPE_STROKE
 	};
+};
 
-	console.log(strokeAction);
+
+canvasActions.selectColor = function (color) {
+	return {
+		type: canvasActions.types.TYPE_SELECTCOLOR,
+		data: {
+			color : color
+		}
+	};
+};
+
+canvasActions.clearCanvas = function() {
+	return {
+		type: canvasActions.types.TYPE_CLEAN
+	};
+};
+
+
+socketClient.onopen = function (event) {
+	socketClient.send(JSON.stringify({message: "Here's some text that the server is urgently awaiting!"}));
+};
+
+socketClient.onmessage = function (event) {
+	canvasStore.listener(JSON.parse(event.data) || {});
 };
 
 // prototype to	start drawing on touch using canvas moveTo and lineTo
@@ -203,7 +278,9 @@ var drawTouch = function() {
 		y = e.changedTouches[0].pageY-44;
 		ctx.moveTo(x,y);
 
-		penMoveTo(x, y);
+		canvasStore.dispatch(canvasActions.beginPath());
+		canvasStore.dispatch(canvasActions.moveTo(x,y));
+
 	};
 	var move = function(e) {
 		e.preventDefault();
@@ -211,6 +288,9 @@ var drawTouch = function() {
 		y = e.changedTouches[0].pageY-44;
 		ctx.lineTo(x,y);
 		ctx.stroke();
+
+		canvasStore.dispatch(canvasActions.lineTo(x,y));
+		canvasStore.dispatch(canvasActions.stroke());
 	};
     document.getElementById("canvas").addEventListener("touchstart", start, false);
 	document.getElementById("canvas").addEventListener("touchmove", move, false);
@@ -224,6 +304,9 @@ var drawPointer = function() {
 		x = e.pageX;
 		y = e.pageY-44;
 		ctx.moveTo(x,y);
+
+		canvasStore.dispatch(canvasActions.beginPath());
+		canvasStore.dispatch(canvasActions.moveTo(x,y));
 	};
 	var move = function(e) {
 		e.preventDefault();
@@ -232,6 +315,9 @@ var drawPointer = function() {
 		y = e.pageY-44;
 		ctx.lineTo(x,y);
 		ctx.stroke();
+
+		canvasStore.dispatch(canvasActions.lineTo(x,y));
+		canvasStore.dispatch(canvasActions.stroke());
     };
     document.getElementById("canvas").addEventListener("MSPointerDown", start, false);
 	document.getElementById("canvas").addEventListener("MSPointerMove", move, false);
@@ -245,6 +331,10 @@ var drawMouse = function() {
 		x = e.pageX;
 		y = e.pageY-44;
 		ctx.moveTo(x,y);
+
+		canvasStore.dispatch(canvasActions.beginPath());
+		canvasStore.dispatch(canvasActions.moveTo(x,y));
+
 	};
 	var move = function(e) {
 		if(clicked){
@@ -252,6 +342,9 @@ var drawMouse = function() {
 			y = e.pageY-44;
 			ctx.lineTo(x,y);
 			ctx.stroke();
+
+			canvasStore.dispatch(canvasActions.lineTo(x,y));
+			canvasStore.dispatch(canvasActions.stroke());
 		}
 	};
 	var stop = function(e) {
@@ -269,7 +362,7 @@ var drawMouse = function() {
 <body>
 <div id="page">
     <div class="header">
-		<a id="new" class="navbtn" onclick="newCanvas()">New</a>
+		<a id="new" class="navbtn" onclick="cleanCanvas()">Clean</a>
         <div class="title">Draw Something</div>
     </div>
     <div id="content"><p style="text-align:center">Loading Canvas...</p></div>
